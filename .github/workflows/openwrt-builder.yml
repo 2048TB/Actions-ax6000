@@ -112,7 +112,6 @@ jobs:
           "CONFIG_PACKAGE_luci"
           "CONFIG_PACKAGE_luci-app-passwall"
           "CONFIG_PACKAGE_luci-i18n-passwall-zh-cn"
-          "CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy"
           "CONFIG_CCACHE"
           "CONFIG_PACKAGE_kmod-sched-fq"
           "CONFIG_PACKAGE_kmod-tcp-bbr"
