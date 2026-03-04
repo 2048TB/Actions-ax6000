@@ -137,9 +137,32 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
+        free -h
+        df -hT
         ccache -M 2G
         ccache -s || true
-        make -j$(nproc) || make -j1 || make -j1 V=s
+
+        # Keep CI logs alive and expose CPU/memory hotspots while compiling.
+        (
+          while true; do
+            sleep 300
+            echo "[keepalive] $(date '+%F %T') compiling..."
+            ps -eo pid,ppid,%cpu,%mem,etime,cmd --sort=-%cpu | head -n 12
+          done
+        ) &
+        KEEPALIVE_PID=$!
+
+        set +e
+        make -j"$(nproc)" V=s
+        RET=$?
+        kill "$KEEPALIVE_PID" 2>/dev/null || true
+        wait "$KEEPALIVE_PID" 2>/dev/null || true
+        set -e
+
+        if [ "$RET" -ne 0 ]; then
+          make -j1 V=s
+        fi
+
         ccache -s || true
         echo "status=success" >> $GITHUB_OUTPUT
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
