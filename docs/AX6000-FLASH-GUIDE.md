@@ -1,72 +1,67 @@
 # Redmi AX6000 刷机说明（本仓库产物）
 
-> 适用范围：本仓库编译出的 `ubootmod` 固件。
+> 适用范围：本仓库当前默认编译 `stock` 布局（`xiaomi_redmi-router-ax6000-stock`）。
 >
-> 高风险提示：刷机和分区操作有变砖风险。刷机前请确认你能进入救援模式并有回退方案。
+> 高风险提示：刷机有变砖风险。操作前请确认你有回退方案。
 
-## 1. 先识别产物文件
+## 1. 你会看到哪些产物
 
-编译完成后常见文件：
+本仓库的 Release 默认只上传：
 
-- `...-ubootmod-squashfs-sysupgrade.itb`
-- `...-ubootmod-initramfs-factory.ubi`
-- `...-ubootmod-initramfs-recovery.itb`
-- `...-ubootmod-preloader.bin`
-- `...-ubootmod-bl31-uboot.fip`
+- `...-stock-squashfs-sysupgrade.bin`
 
-用途说明：
+说明：
 
-- `sysupgrade.itb`：已在 OpenWrt/ImmortalWrt 上时的日常升级包。
-- `initramfs-factory.ubi`：首次写入 `ubootmod` 体系时使用（需匹配正确流程）。
-- `initramfs-recovery.itb`：救援/临时启动用途，不是日常升级包。
-- `preloader.bin`、`bl31-uboot.fip`：底层引导组件，**不要在日常升级中刷写**。
+- `sysupgrade.bin`：当前默认的升级/刷写主文件。
+- Actions 构建目录里仍可能出现 `manifest`、`sha256sums` 等辅助文件，这是正常现象。
 
-## 2. 你现在是原厂系统时该怎么选
+## 2. 为什么别人常见 `.bin`，你之前是 `itb/ubi`
 
-你是“原厂准备刷入”，优先结论：
+核心区别是目标机型配置：
 
-- 目标写入包：`...-ubootmod-initramfs-factory.ubi`
-- 后续升级包：`...-ubootmod-squashfs-sysupgrade.itb`
+- `stock` 目标（本仓库当前默认）通常对应 `sysupgrade.bin`。
+- `ubootmod` 目标通常对应 `sysupgrade.itb`、`initramfs-factory.ubi` 等多种格式。
 
-## 3. 原厂首刷建议
+也就是说，差异来自 `target device/layout`，不是 CI 模板本身。
 
-由于本仓库当前只编译 `ubootmod` 目标，不包含 stock-layout 目标，实际首刷方式强依赖你采用的入口（例如：SSH 注入、Breed/U-Boot、救援、串口）。
-
-请务必遵循你正在使用的那条入口教程，不要混用步骤。尤其是：
-
-- 不要把 `sysupgrade.itb` 当作首次写入包。
-- 不要在未确认分区/流程时刷 `preloader.bin`、`bl31-uboot.fip`。
-
-## 4. 成功进入 ImmortalWrt 后的升级方法
+## 3. 升级方法（当前默认产物）
 
 ### LuCI 升级
 
 系统 -> 备份/升级 -> 刷写新固件，选择：
 
-- `...-ubootmod-squashfs-sysupgrade.itb`
+- `...-stock-squashfs-sysupgrade.bin`
 
 ### SSH 升级
 
 ```sh
-scp immortalwrt-...-ubootmod-squashfs-sysupgrade.itb root@192.168.31.1:/tmp/
+scp immortalwrt-...-stock-squashfs-sysupgrade.bin root@192.168.31.1:/tmp/
 ssh root@192.168.31.1
-sysupgrade /tmp/immortalwrt-...-ubootmod-squashfs-sysupgrade.itb
+sysupgrade /tmp/immortalwrt-...-stock-squashfs-sysupgrade.bin
 ```
 
-若你要清空配置再升级，可改用：
+清空配置升级：
 
 ```sh
-sysupgrade -n /tmp/immortalwrt-...-ubootmod-squashfs-sysupgrade.itb
+sysupgrade -n /tmp/immortalwrt-...-stock-squashfs-sysupgrade.bin
 ```
+
+## 4. 如果你仍要 `ubootmod` 格式
+
+需要把目标改回：
+
+- `.config` 中 `CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_redmi-router-ax6000-ubootmod=y`
+- 同步调整 workflow 的 `required_symbols` 校验
+- Release 上传规则从 `*sysupgrade.bin` 改回你需要的模式（如 `*` 或 `*sysupgrade.itb`）
 
 ## 5. 默认信息
 
 - 默认管理地址：`http://192.168.31.1`
 - 默认用户名：`root`
 
-## 6. 参考资料（建议先看）
+## 6. 参考资料
 
-- OpenWrt Redmi AX6000 设备页（含分区/升级注意事项）
+- OpenWrt Redmi AX6000 设备页
   - https://openwrt.org/toh/xiaomi/redmi_ax6000
 - ImmortalWrt 官方仓库
   - https://github.com/immortalwrt/immortalwrt

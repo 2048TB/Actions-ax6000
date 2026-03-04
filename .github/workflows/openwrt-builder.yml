@@ -66,17 +66,22 @@ jobs:
         mkdir -p openwrt/dl
         mkdir -p openwrt/.ccache
 
-    - name: Restore build cache
+    - name: Restore dl cache
       uses: actions/cache@v4
       with:
-        path: |
-          openwrt/dl
-          openwrt/.ccache
-        key: ${{ runner.os }}-${{ env.REPO_BRANCH }}-${{ env.CACHE_VERSION }}-${{ hashFiles('.config', 'diy.sh', '.github/workflows/openwrt-builder.yml') }}
+        path: openwrt/dl
+        key: ${{ runner.os }}-${{ env.REPO_BRANCH }}-dl-${{ env.CACHE_VERSION }}
         restore-keys: |
-          ${{ runner.os }}-${{ env.REPO_BRANCH }}-${{ env.CACHE_VERSION }}-
-          ${{ runner.os }}-${{ env.REPO_BRANCH }}-
-          ${{ runner.os }}-
+          ${{ runner.os }}-${{ env.REPO_BRANCH }}-dl-
+
+    - name: Restore ccache
+      uses: actions/cache@v4
+      with:
+        path: openwrt/.ccache
+        key: ${{ runner.os }}-${{ env.REPO_BRANCH }}-ccache-${{ env.CACHE_VERSION }}-${{ hashFiles('.config', 'diy.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ env.REPO_BRANCH }}-ccache-${{ env.CACHE_VERSION }}-
+          ${{ runner.os }}-${{ env.REPO_BRANCH }}-ccache-
 
     - name: Load custom feeds
       run: |
@@ -108,10 +113,12 @@ jobs:
         sed -n '1,220p' custom-config.diff
 
         required_symbols=(
-          "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_redmi-router-ax6000-ubootmod"
+          "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_redmi-router-ax6000-stock"
           "CONFIG_PACKAGE_luci"
           "CONFIG_PACKAGE_luci-app-passwall"
           "CONFIG_PACKAGE_luci-i18n-passwall-zh-cn"
+          "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox"
+          "CONFIG_PACKAGE_sing-box"
           "CONFIG_CCACHE"
           "CONFIG_PACKAGE_kmod-sched"
           "CONFIG_PACKAGE_kmod-tcp-bbr"
@@ -123,6 +130,21 @@ jobs:
             exit 1
           fi
         done
+
+        if ! grep -q "^# CONFIG_TARGET_ROOTFS_INITRAMFS is not set$" .config; then
+          echo "::error::Expected CONFIG_TARGET_ROOTFS_INITRAMFS to be disabled for bin-only release profile."
+          exit 1
+        fi
+
+        if grep -q "^CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y$" .config; then
+          echo "::error::Xray include must stay disabled in SingBox-only profile."
+          exit 1
+        fi
+
+        if grep -q "^CONFIG_PACKAGE_xray-core=y$" .config; then
+          echo "::error::xray-core must stay disabled in SingBox-only profile."
+          exit 1
+        fi
 
     - name: Download package
       id: package
@@ -139,7 +161,7 @@ jobs:
         echo -e "$(nproc) thread compile"
         free -h
         df -hT
-        ccache -M 2G
+        ccache -M 8G
         ccache -s || true
 
         # Keep CI logs alive and expose CPU/memory hotspots while compiling.
@@ -153,7 +175,7 @@ jobs:
         KEEPALIVE_PID=$!
 
         set +e
-        make -j"$(nproc)" V=s
+        make -j"$(nproc)"
         RET=$?
         kill "$KEEPALIVE_PID" 2>/dev/null || true
         wait "$KEEPALIVE_PID" 2>/dev/null || true
@@ -200,4 +222,4 @@ jobs:
       with:
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
-        files: ${{ env.FIRMWARE }}/*
+        files: ${{ env.FIRMWARE }}/*sysupgrade.bin
