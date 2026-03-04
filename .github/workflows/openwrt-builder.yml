@@ -28,6 +28,8 @@ env:
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_SH: diy.sh
+  CACHE_VERSION: v1
+  CCACHE_DIR: ${{ github.workspace }}/openwrt/.ccache
   TZ: Asia/Shanghai
 
 jobs:
@@ -58,6 +60,23 @@ jobs:
         df -hT $PWD
         git clone --filter=blob:none --single-branch --depth=1 $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
+
+    - name: Prepare cache directories
+      run: |
+        mkdir -p openwrt/dl
+        mkdir -p openwrt/.ccache
+
+    - name: Restore build cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          openwrt/dl
+          openwrt/.ccache
+        key: ${{ runner.os }}-${{ env.REPO_BRANCH }}-${{ env.CACHE_VERSION }}-${{ hashFiles('.config', 'diy.sh', '.github/workflows/openwrt-builder.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ env.REPO_BRANCH }}-${{ env.CACHE_VERSION }}-
+          ${{ runner.os }}-${{ env.REPO_BRANCH }}-
+          ${{ runner.os }}-
 
     - name: Load custom feeds
       run: |
@@ -94,6 +113,7 @@ jobs:
           "CONFIG_PACKAGE_luci-app-passwall"
           "CONFIG_PACKAGE_luci-i18n-passwall-zh-cn"
           "CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy"
+          "CONFIG_CCACHE"
           "CONFIG_PACKAGE_kmod-sched-fq"
           "CONFIG_PACKAGE_kmod-tcp-bbr"
         )
@@ -118,7 +138,10 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
+        ccache -M 2G
+        ccache -s || true
         make -j$(nproc) || make -j1 || make -j1 V=s
+        ccache -s || true
         echo "status=success" >> $GITHUB_OUTPUT
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
