@@ -1,20 +1,31 @@
 # Redmi AX6000 ImmortalWrt 自动编译
 
-本仓库用于编译 `ImmortalWrt openwrt-21.02` 的 `xiaomi_redmi-router-ax6000-stock` 固件。
+本仓库用于构建 `hanwckf/immortalwrt-mt798x` 的 Redmi AX6000 固件（`openwrt-21.02` 分支）。
 
-## 入口
+## 当前构建方案
 
-- 刷机文档：`docs/AX6000-FLASH-GUIDE.md`
-
-## 当前构建特点
-
-- 目标机型：`mediatek/mt7986` + `xiaomi_redmi-router-ax6000-stock`
-- 发布策略：Release 上传 `*factory.bin`、`*sysupgrade.bin`、`*initramfs-kernel.bin`
+- 编译入口：单 `diy.sh`（`pre|feeds|post` 三阶段）
+- CI 工作流：单 `.github/workflows/openwrt-builder.yml`
+- PassWall：使用官方 feed（`passwall_luci + passwall_packages`），并采用 `Xray` 配置
 - 默认管理地址：`192.168.31.1`
-- PassWall：采用 `Openwrt-Passwall` 官方仓库 `package/custom` 覆盖方案（`VLESS + SingBox + V2ray_Geodata`），并替换 `golang` feed 以兼容新版本 SingBox
+- 网络优化：保留 `BBR`（`kmod-sched-core + kmod-tcp-bbr`）
 
-## 为什么别人常见是 `.bin`
+## 已移除的软件
 
-- 关键差异是 `target device`，不是 GitHub Actions 模板本身。
-- `stock` 目标通常生成 `sysupgrade.bin`。
-- `ubootmod` 目标会生成 `itb/ubi`（例如 `sysupgrade.itb`、`initramfs-factory.ubi`）。
+- `mosdns`
+- `openlist`
+- `tailscale`
+
+上述软件在 `.config` 中已关闭，同时 CI 增加了禁止项校验，避免后续误启用。
+
+## 固件产物
+
+Release 默认上传：
+
+- `*factory.bin`
+- `*sysupgrade.bin`
+- `*initramfs-kernel.bin`
+
+## 文档
+
+当前仓库未保留独立刷机文档，刷机与升级建议以 Release 说明和工作流产物命名为准。
