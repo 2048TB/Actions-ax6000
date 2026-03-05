@@ -12,8 +12,9 @@ STAGE="${1:-pre}"
 
 case "$STAGE" in
   pre)
-    # Keep official feeds only by default.
-    # Add extra feeds here if needed.
+    # Add PassWall feeds (official org, latest version with SingBox support)
+    echo "src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main" >> feeds.conf.default
+    echo "src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main" >> feeds.conf.default
     ;;
 
   post)

@@ -23,8 +23,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REPO_URL: https://github.com/immortalwrt/immortalwrt
-  REPO_BRANCH: openwrt-24.10
+  REPO_URL: https://github.com/hanwckf/immortalwrt-mt798x
+  REPO_BRANCH: openwrt-21.02
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_SH: diy.sh
@@ -113,14 +113,14 @@ jobs:
         sed -n '1,220p' custom-config.diff
 
         required_symbols=(
-          "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_redmi-router-ax6000-stock"
+          "CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_xiaomi_redmi-router-ax6000-stock"
           "CONFIG_PACKAGE_luci"
           "CONFIG_PACKAGE_luci-app-passwall"
           "CONFIG_PACKAGE_luci-i18n-passwall-zh-cn"
           "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox"
           "CONFIG_PACKAGE_sing-box"
           "CONFIG_CCACHE"
-          "CONFIG_PACKAGE_kmod-sched"
+          "CONFIG_PACKAGE_kmod-sched-core"
           "CONFIG_PACKAGE_kmod-tcp-bbr"
         )
 
@@ -130,11 +130,6 @@ jobs:
             exit 1
           fi
         done
-
-        if ! grep -q "^# CONFIG_TARGET_ROOTFS_INITRAMFS is not set$" .config; then
-          echo "::error::Expected CONFIG_TARGET_ROOTFS_INITRAMFS to be disabled for bin-only release profile."
-          exit 1
-        fi
 
         if grep -q "^CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y$" .config; then
           echo "::error::Xray include must stay disabled in SingBox-only profile."
@@ -150,7 +145,7 @@ jobs:
       id: package
       run: |
         cd openwrt
-        make download -j"$(nproc)"
+        make download -j8 || make download -j1 V=s
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
@@ -182,12 +177,13 @@ jobs:
         set -e
 
         if [ "$RET" -ne 0 ]; then
-          make -j1 V=s
+          echo "Multi-thread compile failed, retrying with single thread..."
+          make -j1 || make -j1 V=s
         fi
 
         ccache -s || true
         echo "status=success" >> $GITHUB_OUTPUT
-        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
+        grep '^CONFIG_TARGET_DEVICE_.*_DEVICE_.*=y$' .config | head -1 | sed -r 's/.*_DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
@@ -222,4 +218,7 @@ jobs:
       with:
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
-        files: ${{ env.FIRMWARE }}/*sysupgrade.bin
+        files: |
+          ${{ env.FIRMWARE }}/*factory.bin
+          ${{ env.FIRMWARE }}/*sysupgrade.bin
+          ${{ env.FIRMWARE }}/*initramfs-kernel.bin

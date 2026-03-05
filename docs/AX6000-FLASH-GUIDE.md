@@ -1,67 +1,78 @@
-# Redmi AX6000 刷机说明（本仓库产物）
+# Redmi AX6000 刷机说明
 
-> 适用范围：本仓库当前默认编译 `stock` 布局（`xiaomi_redmi-router-ax6000-stock`）。
+> 适用范围：本仓库编译 `hanwckf/immortalwrt-mt798x`（openwrt-21.02）的 `xiaomi_redmi-router-ax6000-stock` 固件。
 >
 > 高风险提示：刷机有变砖风险。操作前请确认你有回退方案。
 
-## 1. 你会看到哪些产物
+## 1. Release 产物说明
 
-本仓库的 Release 默认只上传：
+| 文件 | 用途 | 使用场景 |
+|------|------|----------|
+| `*-squashfs-factory.bin` | 首次刷入 | 从小米原厂固件刷入 OpenWrt |
+| `*-squashfs-sysupgrade.bin` | 系统升级 | 已有 OpenWrt 时升级到新版本 |
+| `*-initramfs-kernel.bin` | 救砖/恢复 | 纯内存启动，不写入闪存，断电恢复原状 |
 
-- `...-stock-squashfs-sysupgrade.bin`
+## 2. 首次从原厂固件刷入
 
-说明：
+前提：已通过漏洞获取小米原厂固件的 SSH 访问权限。
 
-- `sysupgrade.bin`：当前默认的升级/刷写主文件。
-- Actions 构建目录里仍可能出现 `manifest`、`sha256sums` 等辅助文件，这是正常现象。
-
-## 2. 为什么别人常见 `.bin`，你之前是 `itb/ubi`
-
-核心区别是目标机型配置：
-
-- `stock` 目标（本仓库当前默认）通常对应 `sysupgrade.bin`。
-- `ubootmod` 目标通常对应 `sysupgrade.itb`、`initramfs-factory.ubi` 等多种格式。
-
-也就是说，差异来自 `target device/layout`，不是 CI 模板本身。
-
-## 3. 升级方法（当前默认产物）
-
-### LuCI 升级
-
-系统 -> 备份/升级 -> 刷写新固件，选择：
-
-- `...-stock-squashfs-sysupgrade.bin`
-
-### SSH 升级
+### 方式一：直接刷入（推荐）
 
 ```sh
-scp immortalwrt-...-stock-squashfs-sysupgrade.bin root@192.168.31.1:/tmp/
+# 1. 上传 factory.bin 到路由器
+scp immortalwrt-...-squashfs-factory.bin root@192.168.31.1:/tmp/
+
+# 2. SSH 登录并写入
 ssh root@192.168.31.1
-sysupgrade /tmp/immortalwrt-...-stock-squashfs-sysupgrade.bin
+mtd -r write /tmp/immortalwrt-...-squashfs-factory.bin firmware
 ```
 
-清空配置升级：
+### 方式二：通过 initramfs 中转
+
+适用于需要先验证固件再写入的场景：
 
 ```sh
-sysupgrade -n /tmp/immortalwrt-...-stock-squashfs-sysupgrade.bin
+# 1. 先刷入 initramfs-kernel.bin 启动临时系统（运行在内存中）
+# 2. 进入临时系统后，使用 sysupgrade 永久写入
+sysupgrade /tmp/immortalwrt-...-squashfs-sysupgrade.bin
 ```
 
-## 4. 如果你仍要 `ubootmod` 格式
+## 3. 升级已有 OpenWrt
 
-需要把目标改回：
+### LuCI Web 升级
 
-- `.config` 中 `CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_redmi-router-ax6000-ubootmod=y`
-- 同步调整 workflow 的 `required_symbols` 校验
-- Release 上传规则从 `*sysupgrade.bin` 改回你需要的模式（如 `*` 或 `*sysupgrade.itb`）
+系统 → 备份/升级 → 刷写新固件，选择 `*-squashfs-sysupgrade.bin`。
+
+### SSH 命令行升级
+
+```sh
+scp immortalwrt-...-squashfs-sysupgrade.bin root@192.168.31.1:/tmp/
+ssh root@192.168.31.1
+sysupgrade /tmp/immortalwrt-...-squashfs-sysupgrade.bin
+```
+
+清空配置升级（恢复默认设置）：
+
+```sh
+sysupgrade -n /tmp/immortalwrt-...-squashfs-sysupgrade.bin
+```
+
+## 4. 救砖/恢复
+
+当路由器无法正常启动时，使用 `*-initramfs-kernel.bin`：
+
+- 该文件启动一个纯内存运行的临时系统，不写入闪存
+- 断电后恢复原状，可安全用于测试
+- 进入临时系统后可通过 `sysupgrade` 重新刷入正常固件
 
 ## 5. 默认信息
 
 - 默认管理地址：`http://192.168.31.1`
 - 默认用户名：`root`
+- 默认密码：无（空密码）
 
 ## 6. 参考资料
 
-- OpenWrt Redmi AX6000 设备页
-  - https://openwrt.org/toh/xiaomi/redmi_ax6000
-- ImmortalWrt 官方仓库
-  - https://github.com/immortalwrt/immortalwrt
+- [OpenWrt Redmi AX6000 设备页](https://openwrt.org/toh/xiaomi/redmi_ax6000)
+- [hanwckf/immortalwrt-mt798x](https://github.com/hanwckf/immortalwrt-mt798x)（上游源码）
+- [ImmortalWrt 官方仓库](https://github.com/immortalwrt/immortalwrt)
