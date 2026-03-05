@@ -96,6 +96,7 @@ jobs:
         cd openwrt
         ./scripts/feeds update -a
         $GITHUB_WORKSPACE/$DIY_SH feeds
+        ./scripts/feeds update -i
 
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a

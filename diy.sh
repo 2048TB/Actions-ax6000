@@ -20,9 +20,12 @@ case "$STAGE" in
 
   feeds)
     # Replace legacy golang feed with newer toolchain packages for SingBox/Xray builds.
+    GOLANG_FEED_REF="${GOLANG_FEED_REF:-5c14cc148c88b42ea36e8c42733c80acd2ee1949}"
     rm -rf feeds/packages/lang/golang
     git clone --filter=blob:none --depth=1 --single-branch \
       https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
+    git -C feeds/packages/lang/golang fetch --depth=1 origin "$GOLANG_FEED_REF"
+    git -C feeds/packages/lang/golang checkout --detach "$GOLANG_FEED_REF"
     ;;
 
   post)
