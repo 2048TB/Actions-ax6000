@@ -1,6 +1,6 @@
 # Redmi AX6000 ImmortalWrt 自动编译
 
-本仓库用于编译 `ImmortalWrt openwrt-24.10` 的 `xiaomi_redmi-router-ax6000-stock` 固件。
+本仓库用于编译 `ImmortalWrt openwrt-21.02` 的 `xiaomi_redmi-router-ax6000-stock` 固件。
 
 ## 入口
 
@@ -8,10 +8,10 @@
 
 ## 当前构建特点
 
-- 目标机型：`mediatek/filogic` + `xiaomi_redmi-router-ax6000-stock`
-- 发布策略：`bin-only`（Release 仅上传 `*sysupgrade.bin`）
+- 目标机型：`mediatek/mt7986` + `xiaomi_redmi-router-ax6000-stock`
+- 发布策略：Release 上传 `*factory.bin`、`*sysupgrade.bin`、`*initramfs-kernel.bin`
 - 默认管理地址：`192.168.31.1`
-- PassWall：已精简为 `VLESS` 最小可用（`SingBox` + `V2ray_Geodata`）
+- PassWall：已调整为 `openwrt-21.02` 可编译配置（禁用 `SingBox/Xray`，保留基础能力）
 
 ## 为什么别人常见是 `.bin`
 
