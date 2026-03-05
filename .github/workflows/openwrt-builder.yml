@@ -79,7 +79,8 @@ jobs:
 
     steps:
     - name: Show upstream hash
-      run: echo "Upstream hash: ${{ needs.check-upstream.outputs.upstream_hash }}"
+      run: |
+        echo "Upstream hash: ${{ needs.check-upstream.outputs.upstream_hash }}"
 
     - name: Checkout
       uses: actions/checkout@v4
