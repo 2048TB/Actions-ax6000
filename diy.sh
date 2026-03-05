@@ -3,6 +3,7 @@
 # Merged DIY script for OpenWrt build pipeline.
 # Usage:
 #   ./diy.sh pre   # before feeds update/install
+#   ./diy.sh feeds # after feeds update, before feeds install
 #   ./diy.sh post  # after feeds install, before build
 #
 
@@ -15,6 +16,13 @@ case "$STAGE" in
     # Add PassWall feeds (official org, latest version with SingBox support)
     echo "src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main" >> feeds.conf.default
     echo "src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main" >> feeds.conf.default
+    ;;
+
+  feeds)
+    # Replace legacy golang feed with newer toolchain packages for SingBox/Xray builds.
+    rm -rf feeds/packages/lang/golang
+    git clone --filter=blob:none --depth=1 --single-branch \
+      https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
     ;;
 
   post)
@@ -35,7 +43,7 @@ case "$STAGE" in
     ;;
 
   *)
-    echo "Unknown stage: $STAGE (expected: pre|post)" >&2
+    echo "Unknown stage: $STAGE (expected: pre|feeds|post)" >&2
     exit 1
     ;;
 esac

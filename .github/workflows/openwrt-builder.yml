@@ -92,7 +92,10 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_SH pre
 
     - name: Update feeds
-      run: cd openwrt && ./scripts/feeds update -a
+      run: |
+        cd openwrt
+        ./scripts/feeds update -a
+        $GITHUB_WORKSPACE/$DIY_SH feeds
 
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
@@ -117,6 +120,7 @@ jobs:
           "CONFIG_PACKAGE_luci"
           "CONFIG_PACKAGE_luci-app-passwall"
           "CONFIG_PACKAGE_luci-i18n-passwall-zh-cn"
+          "CONFIG_PACKAGE_sing-box"
           "CONFIG_CCACHE"
           "CONFIG_PACKAGE_kmod-sched-core"
           "CONFIG_PACKAGE_kmod-tcp-bbr"
@@ -129,12 +133,13 @@ jobs:
           fi
         done
 
-        # openwrt-21.02 ships golang 1.19, while current passwall sing-box requires newer go.
-        # Fail fast with a clear message if sing-box is enabled by mistake.
-        if grep -q "^CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y$" .config || \
-           grep -q "^CONFIG_PACKAGE_sing-box=y$" .config; then
-          echo "::error::Sing-box is incompatible with current openwrt-21.02 toolchain (go 1.19). Disable sing-box or upgrade source branch."
+        if grep -q "^CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y$" .config; then
+          echo "PassWall SingBox include is enabled."
+        elif grep -q "^# CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox is not set$" .config; then
+          echo "::error::PassWall SingBox include is explicitly disabled."
           exit 1
+        else
+          echo "::warning::PassWall SingBox include symbol not found after defconfig; continuing because sing-box package is enabled."
         fi
 
         if grep -q "^CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y$" .config; then

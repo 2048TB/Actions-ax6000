@@ -11,7 +11,7 @@
 - 目标机型：`mediatek/mt7986` + `xiaomi_redmi-router-ax6000-stock`
 - 发布策略：Release 上传 `*factory.bin`、`*sysupgrade.bin`、`*initramfs-kernel.bin`
 - 默认管理地址：`192.168.31.1`
-- PassWall：已调整为 `openwrt-21.02` 可编译配置（禁用 `SingBox/Xray`，保留基础能力）
+- PassWall：`VLESS + SingBox + V2ray_Geodata`；并在构建时替换 `golang` feed 以兼容新版本 SingBox
 
 ## 为什么别人常见是 `.bin`
 
