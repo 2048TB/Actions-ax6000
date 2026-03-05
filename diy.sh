@@ -26,6 +26,10 @@ case "$STAGE" in
       https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
     git -C feeds/packages/lang/golang fetch --depth=1 origin "$GOLANG_FEED_REF"
     git -C feeds/packages/lang/golang checkout --detach "$GOLANG_FEED_REF"
+
+    # Avoid feed conflict: force luci-app-passwall from passwall_luci feed.
+    rm -rf feeds/luci/applications/luci-app-passwall
+    rm -rf feeds/luci/applications/luci-app-passwall2
     ;;
 
   post)

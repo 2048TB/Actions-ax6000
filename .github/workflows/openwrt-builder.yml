@@ -153,6 +153,11 @@ jobs:
           exit 1
         fi
 
+        if grep -q "^CONFIG_PACKAGE_v2ray-core=y$" .config; then
+          echo "::error::v2ray-core must stay disabled in current SingBox profile."
+          exit 1
+        fi
+
     - name: Download package
       id: package
       run: |
