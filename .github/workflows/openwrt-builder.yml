@@ -96,6 +96,14 @@ jobs:
         cd openwrt
         ./scripts/feeds update -a
         $GITHUB_WORKSPACE/$DIY_SH feeds
+        if [ -d feeds/luci/applications/luci-app-passwall ]; then
+          echo "::error::feed conflict: feeds/luci/applications/luci-app-passwall still exists."
+          exit 1
+        fi
+        if [ ! -d package/custom/luci-app-passwall ]; then
+          echo "::error::custom PassWall package missing: package/custom/luci-app-passwall."
+          exit 1
+        fi
         ./scripts/feeds update -i
 
     - name: Install feeds
