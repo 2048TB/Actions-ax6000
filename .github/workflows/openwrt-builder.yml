@@ -15,6 +15,8 @@ name: OpenWrt Builder
 on:
   repository_dispatch:
   workflow_dispatch:
+  schedule:
+    - cron: "20 */6 * * *"
 
 permissions:
   contents: write
@@ -34,10 +36,51 @@ env:
   TZ: Asia/Shanghai
 
 jobs:
+  check-upstream:
+    runs-on: ubuntu-22.04
+    outputs:
+      should_build: ${{ steps.decide.outputs.should_build }}
+      upstream_hash: ${{ steps.get_hash.outputs.commit_hash }}
+    steps:
+    - name: Get upstream commit hash
+      id: get_hash
+      run: |
+        commit_hash="$(git ls-remote "$REPO_URL" "refs/heads/$REPO_BRANCH" | awk '{print $1}')"
+        if [ -z "$commit_hash" ]; then
+          echo "::error::Failed to resolve upstream commit hash for $REPO_URL/$REPO_BRANCH"
+          exit 1
+        fi
+        echo "commit_hash=$commit_hash" >> $GITHUB_OUTPUT
+
+    - name: Restore upstream hash cache
+      id: upstream_cache
+      uses: actions/cache@v4
+      with:
+        path: .upstream_hash
+        key: upstream-${{ env.REPO_BRANCH }}-${{ steps.get_hash.outputs.commit_hash }}
+        restore-keys: |
+          upstream-${{ env.REPO_BRANCH }}-
+
+    - name: Decide whether to build
+      id: decide
+      run: |
+        if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ steps.upstream_cache.outputs.cache-hit }}" = "true" ]; then
+          echo "No upstream update detected on scheduled run; skip build."
+          echo "should_build=false" >> $GITHUB_OUTPUT
+        else
+          echo "${{ steps.get_hash.outputs.commit_hash }}" > .upstream_hash
+          echo "should_build=true" >> $GITHUB_OUTPUT
+        fi
+
   build:
+    needs: check-upstream
+    if: needs.check-upstream.outputs.should_build == 'true'
     runs-on: ubuntu-22.04
 
     steps:
+    - name: Show upstream hash
+      run: echo "Upstream hash: ${{ needs.check-upstream.outputs.upstream_hash }}"
+
     - name: Checkout
       uses: actions/checkout@v4
 
