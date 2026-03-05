@@ -17,15 +17,35 @@ case "$STAGE" in
     ;;
 
   feeds)
+    # Pin external sources for reproducible builds. You may override these via env.
+    PASSWALL_LUCI_REF="${PASSWALL_LUCI_REF:-69346de7d43fa64ad124bf35b4f9b374bb9d44ef}"
+    PASSWALL_PACKAGES_REF="${PASSWALL_PACKAGES_REF:-291522a4918deb65c464584cfd912c62ac874085}"
+    GOLANG_FEED_REF="${GOLANG_FEED_REF:-5c14cc148c88b42ea36e8c42733c80acd2ee1949}"
+    V2RAY_GEODATA_REF="${V2RAY_GEODATA_REF:-2e3845caae172326f02b3406048c7a3613f3dee5}"
+
+    # Pin PassWall feed repos declared in feeds.conf.default.
+    if [ -d feeds/passwall_luci/.git ]; then
+      git -C feeds/passwall_luci fetch --depth=1 origin "$PASSWALL_LUCI_REF"
+      git -C feeds/passwall_luci checkout --detach "$PASSWALL_LUCI_REF"
+    fi
+    if [ -d feeds/passwall_packages/.git ]; then
+      git -C feeds/passwall_packages fetch --depth=1 origin "$PASSWALL_PACKAGES_REF"
+      git -C feeds/passwall_packages checkout --detach "$PASSWALL_PACKAGES_REF"
+    fi
+
     # Keep v2ray-geodata source aligned with the referenced profile.
     rm -rf feeds/packages/net/v2ray-geodata package/v2ray-geodata
     git clone --filter=blob:none --depth=1 --single-branch \
       https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
+    git -C package/v2ray-geodata fetch --depth=1 origin "$V2RAY_GEODATA_REF"
+    git -C package/v2ray-geodata checkout --detach "$V2RAY_GEODATA_REF"
 
     # Align golang toolchain for PassWall/Xray packages.
     rm -rf feeds/packages/lang/golang
     git clone --filter=blob:none --depth=1 --single-branch \
       https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
+    git -C feeds/packages/lang/golang fetch --depth=1 origin "$GOLANG_FEED_REF"
+    git -C feeds/packages/lang/golang checkout --detach "$GOLANG_FEED_REF"
     ;;
 
   post)
