@@ -31,7 +31,7 @@ env:
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_SH: diy.sh
-  CACHE_VERSION: v1
+  CACHE_VERSION: v2
   CCACHE_DIR: ${{ github.workspace }}/openwrt/.ccache
   TZ: Asia/Shanghai
 
@@ -118,6 +118,9 @@ jobs:
         key: ${{ runner.os }}-${{ env.REPO_BRANCH }}-dl-${{ env.CACHE_VERSION }}
         restore-keys: |
           ${{ runner.os }}-${{ env.REPO_BRANCH }}-dl-
+
+    - name: Reset Go module cache
+      run: rm -rf openwrt/dl/go-mod-cache
 
     - name: Restore ccache
       uses: actions/cache@v4
