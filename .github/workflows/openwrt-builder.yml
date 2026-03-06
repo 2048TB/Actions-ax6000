@@ -243,6 +243,10 @@ jobs:
       if: (!cancelled())
       run: df -hT
 
+    - name: Purge Go module cache before saving dl cache
+      if: always()
+      run: rm -rf openwrt/dl/go-mod-cache
+
     - name: Organize files
       id: organize
       if: steps.compile.outputs.status == 'success' && !cancelled()
