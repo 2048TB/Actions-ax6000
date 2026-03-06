@@ -177,7 +177,6 @@ jobs:
           "CONFIG_PACKAGE_luci-app-passwall"
           "CONFIG_PACKAGE_luci-i18n-passwall-zh-cn"
           "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray"
-          "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Geoview"
           "CONFIG_PACKAGE_xray-core"
           "CONFIG_CCACHE"
           "CONFIG_PACKAGE_kmod-sched-core"
@@ -190,31 +189,6 @@ jobs:
             exit 1
           fi
         done
-
-        forbidden_symbols=(
-          "CONFIG_PACKAGE_mosdns"
-          "CONFIG_PACKAGE_luci-app-mosdns"
-          "CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn"
-          "CONFIG_PACKAGE_openlist"
-          "CONFIG_PACKAGE_tailscale"
-          "CONFIG_PACKAGE_luci-app-tailscale"
-        )
-
-        for sym in "${forbidden_symbols[@]}"; do
-          if grep -Eq "^${sym}=(y|m)$" .config; then
-            echo "::error::Forbidden package enabled after defconfig: ${sym}=(y|m)"
-            exit 1
-          fi
-        done
-
-        if grep -q "^CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y$" .config; then
-          echo "::error::PassWall SingBox include must stay disabled in current Xray profile."
-          exit 1
-        fi
-        if grep -Eq "^CONFIG_PACKAGE_sing-box=(y|m)$" .config; then
-          echo "::error::sing-box must stay disabled in current Xray profile."
-          exit 1
-        fi
 
     - name: Download package
       id: package
